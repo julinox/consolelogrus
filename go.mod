@@ -1,4 +1,4 @@
-module consolelogrus
+module github.com/julinox/consolelogrus
 
 go 1.22.2
 
