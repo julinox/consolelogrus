@@ -17,6 +17,8 @@ type CustomFormatter struct {
 	PaddingEnabled  bool
 	TimestampFormat string
 	LevelColors     map[logrus.Level]int
+	Tag             string
+	TagColor        string
 }
 
 var (
@@ -30,7 +32,8 @@ var (
 		logrus.PanicLevel: 34, // Blue
 	}
 
-	maxLevelLength = len("WARNING")
+	maxLevelLength  = len("WARNING")
+	defaultTagColor = "magenta"
 )
 
 // InitNewLogger initializes and returns a new instance of logrus.Logger
@@ -48,6 +51,10 @@ func InitNewLogger(cFormat *CustomFormatter) *logrus.Logger {
 		cFormat.LevelColors = defaultColors
 	}
 
+	if cFormat.TagColor == "" {
+		cFormat.TagColor = defaultTagColor
+	}
+
 	logger := logrus.New()
 	logger.SetLevel(logrus.InfoLevel)
 	logger.SetFormatter(cFormat)
@@ -62,6 +69,7 @@ func NewCustomFormatter() *CustomFormatter {
 		TimestampFormat: defaultFormat,
 		LevelColors:     defaultColors,
 		PaddingEnabled:  false,
+		TagColor:        defaultTagColor,
 	}
 }
 
@@ -155,9 +163,15 @@ func (f *CustomFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 		padding = strings.Repeat(" ", maxLevelLength-len(levelText))
 	}
 
-	// Adjust the format to align the timestamp vertically with spaces
-	fmt.Fprintf(b, "\x1b[%dm[%s]%s\x1b[0m [%s] %s\n", levelColor, levelText,
-		padding, timestamp, entry.Message)
+	tag := f.Tag
+	tagPart := ""
+	if tag != "" {
+		tagColorCode := parseColor(f.TagColor)
+		tagPart = fmt.Sprintf("\x1b[%dm[%s]\x1b[0m ", tagColorCode, tag)
+	}
+
+	fmt.Fprintf(b, "\x1b[%dm[%s]%s\x1b[0m [%s] %s%s\n", levelColor, levelText,
+		padding, timestamp, tagPart, entry.Message)
 	return b.Bytes(), nil
 }
 
